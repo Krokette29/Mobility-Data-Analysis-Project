@@ -2,7 +2,7 @@
 project for "Mobility Data Analysis"
 
 ## 关于data_fransformer.py的使用
-该脚本整合每个用户的所有数据为一个pandas dataframe，然后导出成`user_id.csv`文件存放在每个用户文件夹下，方便后续读取和处理数据。
+该脚本整合每个用户的所有数据为一个pandas dataframe，然后导出成`user_id.csv`文件存放在 Data 文件夹下，方便后续读取和处理数据。
 
 把该文件放到目录 mda/07_machine_learning_classification_project/project/Geolife Trajectories 1.3/ 下，即和 Data 文件夹放在一起。然后运行服务器终端，输入以下命令即可开始运行：  
 `python /mda/07_machine_learning_classification_project/project/Geolife\ Trajectories\ 1.3/data_transformer.py`
