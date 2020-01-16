@@ -42,23 +42,21 @@ def _plt_importer(file_name: str) -> pd.DataFrame:
 
 # import plt files of one user, and export as a user_id.csv file
 def _user_plt_transformer(user_folder: str, folder: str):
-    user_id = re.search(r'Data/(.*)', user_folder).group(1)
+	user_id = re.search(r'Data/(.*)', user_folder).group(1)
+	df_all = pd.DataFrame()
+	for plt_file in glob.glob(user_folder + '/Trajectory/*.plt'):
+		df_single = _plt_importer(plt_file)
+		df_all = df_all.append(df_single)
 
-
-    df_all = pd.DataFrame()
-    for plt_file in glob.glob(user_folder + '/Trajectory/*.plt'):
-        df_single = _plt_importer(plt_file)
-        df_all = df_all.append(df_single)
-        
-    df_all = df_all.sort_values(by='datetime')
-    df_all.to_csv(folder + '/csv_files/{}.csv'.format(user_id), index=False)
+	df_all = df_all.sort_values(by='datetime')
+	df_all.to_csv(folder + '/csv_files/{}.csv'.format(user_id), index=False)
     
 
 # transform all plt files to multiple user_id.csv file
 def data_transformer(folder: str, conti=False):
     # check the total number of users
     num_user = 0
-    for user_folder in glob.glob(folder + '/*'):
+    for user_folder in glob.glob(folder + '/[0-9]*'):
         num_user += 1
         
     print('Start transforming...')
@@ -67,10 +65,10 @@ def data_transformer(folder: str, conti=False):
         
     count = 0
     loading = '-\\|/'
-    for user_folder in glob.glob(folder + '/*'):
+    for user_folder in glob.glob(folder + '/[0-9]*'):
         user_id = re.search(r'Data/(.*)', user_folder).group(1)
         if not search or folder + '/csv_files/' + user_id + '.csv' not in search:
-               _user_plt_transformer(user_folder, folder)
+                _user_plt_transformer(user_folder, folder)
 
         count += 1
         perc = round(count / num_user * 100, 2)
