@@ -1,3 +1,23 @@
+####################################################################################################
+#
+# Yuhan Huang, Jan 2020
+#
+# This script is used for collecting all plt files from every user, including detecting the label files and add labels, if they exist.
+# Then export a csv file for every user,  and store all csv files in a seperate folder, i.e. ./Data/csv_files
+#
+# Put this script into the folder ./Geolife Trajectories 1.3, and type "python data_transformer.py" in the command line.
+# Make sure you have already cd to the same folder as the script.
+# If the action is denied because of no permission, try "chmod 777 data_transformer.py".
+#
+# Because it takes quite a long time to transform so many files, so I add a progress bar.
+# The script will ask you "Do you want to continue from last work? (y/n)".
+# If this is the first time excuting the script, just type in 'n'.
+# If the work is interrupted because of some certain reasons, you can type in 'y' when next time executing this script.
+#
+# Take a cup of coffee and have fun :)
+#
+####################################################################################################
+
 import pandas as pd
 import glob
 
@@ -12,8 +32,8 @@ import os
 
 # import one single plt file
 def _plt_importer(file_name: str) -> pd.DataFrame:
-    file = open(file_name, 'r')
-    df_raw = pd.read_table(file)
+    with open(file_name, 'r') as f:
+    	df_raw = pd.read_table(f)
     
     date_time = []
     latitude = []
@@ -49,6 +69,35 @@ def _user_plt_transformer(user_folder: str, folder: str):
 		df_all = df_all.append(df_single)
 
 	df_all = df_all.sort_values(by='datetime')
+
+	# add labels
+	df_all['mode'] = None
+	label_exist = False
+	try:
+		with open(user_folder + '/labels.txt') as f:
+			lines = f.readlines()
+		label_exist = True
+	except:
+		pass
+
+	if label_exist:
+		try:
+			for i in range(1, len(lines)):
+				line = lines[i]
+				line_list = line.split('\t')
+				line_list[2] = line_list[2][:-1]
+
+				start = line_list[0]
+				end = line_list[1]
+				mode = line_list[2]
+				df_all.loc[(start <= df_all['datetime']) & (df_all['datetime'] <= end), 'mode'] = mode
+
+			print('\rAdd labels for user ' + user_id)
+		except:
+			print('\rError with labels for user ' + user_id)
+
+
+	# export to csv file
 	df_all.to_csv(folder + '/csv_files/{}.csv'.format(user_id), index=False)
     
 
@@ -77,24 +126,29 @@ def data_transformer(folder: str, conti=False):
     
     print('\nTransform complete!')
 
-while True:
-	# make dir
-	path = './Data'
-	csv_path = path + '/csv_files'
-	folder = os.path.exists(csv_path)
-	if not folder:
-		os.makedirs(csv_path)
 
-	user_input = input('Do you want to continue from last work? (y/n)\n')
-	if user_input == 'y' or user_input == 'Y':
-		conti = True
-	elif user_input == 'n' or user_input == 'N':
-		conti = False
-	else:
-		print('Please input again.')
-		continue
+def main():
+	while True:
+		# make dir
+		path = './Data'
+		csv_path = path + '/csv_files'
+		folder = os.path.exists(csv_path)
+		if not folder:
+			os.makedirs(csv_path)
 
-	data_transformer(path, conti=conti)
-	break
+		user_input = input('Do you want to continue from last work? (y/n)\n')
+		if user_input == 'y' or user_input == 'Y':
+			conti = True
+		elif user_input == 'n' or user_input == 'N':
+			conti = False
+		else:
+			print('Please input again.')
+			continue
 
-sys.exit(0)
+		data_transformer(path, conti=conti)
+		break
+
+	sys.exit(0)
+
+if __name__ == '__main__':
+	main()
