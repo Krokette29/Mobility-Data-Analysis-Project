@@ -31,12 +31,12 @@ import os
 from functools import wraps
 
 
-def logit_transformer(func):
+def logit(func):
 	@wraps(func)
 	def with_logging(*args, **kwargs):
-		print('Start transforming...')
+		print('Start {}...'.format(func.__name__))
 		output = func(*args, **kwargs)
-		print('\nTransform complete!')
+		print('\nComplete {}!'.format(func.__name__))
 		return output
 	return with_logging
 
@@ -113,7 +113,7 @@ def _user_plt_transformer(user_folder: str, folder: str):
     
 
 # transform all plt files to multiple user_id.csv file
-@logit_transformer
+@logit
 def data_transformer(folder: str, conti=False):
     # check the total number of users
     num_user = 0
@@ -135,26 +135,32 @@ def data_transformer(folder: str, conti=False):
         sys.stdout.write('\r{} {}/{} | {}%'.format(loading[count % 4], count, num_user, perc))
 
 
-def main():
+def user_input():
+	user_input = input('Do you want to continue from last work? (y/n)\n')
 	while True:
-		# make dir
-		path = './Data'
-		csv_path = path + '/csv_files'
-		folder = os.path.exists(csv_path)
-		if not folder:
-			os.makedirs(csv_path)
-
-		user_input = input('Do you want to continue from last work? (y/n)\n')
 		if user_input == 'y' or user_input == 'Y':
 			conti = True
+			break
 		elif user_input == 'n' or user_input == 'N':
 			conti = False
+			break
 		else:
 			print('Please input again.')
-			continue
 
-		data_transformer(path, conti=conti)
-		break
+	return conti
+
+
+def main():
+	# make dir
+	path = './Data'
+	csv_path = path + '/csv_files'
+	folder = os.path.exists(csv_path)
+	if not folder:
+		os.makedirs(csv_path)
+
+	conti = user_input()
+
+	data_transformer(path, conti=conti)
 
 	sys.exit(0)
 
