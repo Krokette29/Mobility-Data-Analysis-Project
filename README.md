@@ -24,3 +24,9 @@ project for "Mobility Data Analysis"
 该脚本自动删除不带标签的原始数据。
 
 使用方法和上基本一致。一开始是检测过程，不进行删除。检测完毕输入DELETE进行删除操作。完成后可以再次运行该脚本，检测是否删除成功。
+
+## 关于utils.py的使用
+该脚本包含了一些常用的函数可供使用。目前暂时就一个，后续会添加。将该脚本同样放在和Data同级的文件夹（基本都放这里了，包括项目的主代码），然后在jupyter notebook中添加`from utils import ***`即可使用对应函数。比如`from utils import data_importer`。
+
+函数列表：
+1. data_importer：导入数据用。确保已经完成初始两步的数据预处理，csv_files_preprocessed文件夹中已有所有处理过的csv文件。那么只要导入该函数，然后输入`gdf = data_importer()`即可导入所有数据到geodataframe gdf中。默认是导入所有带标签的数据，导出dataframe是single index。提供三个输入参数，`all`设为True表示导入所有数据（包括带标签和不带标签的）；`label`设为True表示导入带标签的数据，设为False表示导入不带标签的数据；`multi_index`设为True表示导出结果为multi index的（user_id和datetime作为index），否则则是single index。
