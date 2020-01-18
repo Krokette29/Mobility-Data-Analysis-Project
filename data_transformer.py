@@ -28,6 +28,17 @@ import re
 import sys
 import time
 import os
+from functools import wraps
+
+
+def logit_transformer(func):
+	@wraps(func)
+	def with_logging(*args, **kwargs):
+		print('Start transforming...')
+		output = func(*args, **kwargs)
+		print('\nTransform complete!')
+		return output
+	return with_logging
 
 
 # import one single plt file
@@ -102,14 +113,13 @@ def _user_plt_transformer(user_folder: str, folder: str):
     
 
 # transform all plt files to multiple user_id.csv file
+@logit_transformer
 def data_transformer(folder: str, conti=False):
     # check the total number of users
     num_user = 0
     for user_folder in glob.glob(folder + '/[0-9]*'):
         num_user += 1
         
-    print('Start transforming...')
-
     search = glob.glob(folder + '/csv_files/*.csv') if conti else None
         
     count = 0
@@ -117,14 +127,12 @@ def data_transformer(folder: str, conti=False):
     for user_folder in glob.glob(folder + '/[0-9]*'):
         user_id = re.search(r'Data/(.*)', user_folder).group(1)
         if not search or folder + '/csv_files/' + user_id + '.csv' not in search:
-                _user_plt_transformer(user_folder, folder)
+            _user_plt_transformer(user_folder, folder)
 
         count += 1
         perc = round(count / num_user * 100, 2)
         sys.stdout.write('\r' + ' ' * 50)
         sys.stdout.write('\r{} {}/{} | {}%'.format(loading[count % 4], count, num_user, perc))
-    
-    print('\nTransform complete!')
 
 
 def main():
