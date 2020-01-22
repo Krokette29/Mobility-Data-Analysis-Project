@@ -1,0 +1,12 @@
+mode,num_tracks
+bus,2322
+walk,5699
+train,347
+bike,1911
+motorcycle,2
+airplane,31
+boat,10
+taxi,564
+subway,824
+car,1384
+run,9
