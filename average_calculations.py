@@ -42,27 +42,27 @@ def average_calculations(df):
 	counter = 0
 
 	for i, row in df.iterrows():
-		sys.stdout.write('\r{} / {}'.format(i, len(df)))
-		if i == 0: 
+		if i % 100 == 0: sys.stdout.write('\r{} / {}'.format(i, len(df)))
+		if i == 0 or i == len(df) - 1: 
 			speed_sum += row['speed']
 			acc_sum += row['acceleration']
 			counter += 1
-		elif i != len(df) - 1:
+
+		else:
 			last_row = df.iloc[i - 1]
 			duration = row['datetime'] - last_row['datetime']
-			if duration.seconds < 300:
-				speed_sum += row['speed']
-				acc_sum += row['acceleration']
-				counter += 1
-			else:
-				speed_avg += [speed_sum / counter for j in range(counter)]
-				acc_avg += [acc_sum / counter for j in range(counter)]
+			if duration.seconds > 300:
+				speed_avg += [speed_sum / counter] * counter
+				acc_avg += [acc_sum / counter] * counter
 				speed_sum = 0
 				acc_sum = 0
 				counter = 0
-		else:
-			speed_avg += [speed_sum / counter for j in range(counter)]
-			acc_avg += [acc_sum / counter for j in range(counter)]
+			speed_sum += row['speed']
+			acc_sum += row['acceleration']
+			counter += 1
+
+	speed_avg += [speed_sum / counter] * counter
+	acc_avg += [acc_sum / counter] * counter
 
 	assert(len(df) == len(speed_avg) and len(df) == len(acc_avg))
 	df['average_speed_current_track'] = speed_avg
@@ -74,12 +74,14 @@ def average_calculations(df):
 
 def main():
 	path = './df_all.csv'
-	df = data_importer(path)
+	df = data_importer(path, all=True)
 	df = average_calculations(df)
 
-	print('Writing into df_label.csv...')
-	df.to_csv('./df_label.csv', index=False)
+	print('Writing into df_all_2.csv...')
+	df.to_csv('./df_all_2.csv', index=False)
 	print('All complete!')
+
+	sys.exit(0)
 
 
 if __name__ == '__main__':
