@@ -51,7 +51,7 @@ def average_calculations(df):
 		else:
 			last_row = df.iloc[i - 1]
 			duration = row['datetime'] - last_row['datetime']
-			if duration.seconds > 300:
+			if duration.seconds > 300 or row['mode'] != last_row['mode'] or row['user_id'] != last_row['user_id']:
 				speed_avg += [speed_sum / counter] * counter
 				acc_avg += [acc_sum / counter] * counter
 				speed_sum = 0
@@ -74,7 +74,7 @@ def average_calculations(df):
 
 def main():
 	path = './df_all.csv'
-	df = data_importer(path, all=True)
+	df = data_importer(path, all=False, label=True)
 	df = average_calculations(df)
 
 	print('Writing into df_all_2.csv...')
