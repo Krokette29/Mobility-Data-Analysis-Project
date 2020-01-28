@@ -4,6 +4,7 @@ from datetime import datetime
 import glob
 import sys
 import re
+import os
 
 import utils
 from utils import data_importer
@@ -26,7 +27,7 @@ def metadata_importer(path):
 	df['user_id'] = list(map(lambda x: '0' * (3 - len(str(int(x)))) + str(int(x)), df['user_id']))
 
 	# change datetime from str to datetime.datetime
-	df['datetime'] = list(map(lambda s: datetime.strptime(s, '%Y-%m-%d %H:%M:%S'), df['datetime'].values))
+	df['datetime'] = list(map(lambda s: datetime.strptime(s, '%Y-%m-%d %H:%M:%S'), df['end_time'].values))
 
 	print_with_log('Metadata import complete!')
 	return df
@@ -150,7 +151,7 @@ def compute_cost(Z_out, Y, parameters, lambd, m):
 		cost_L2_regularization = 1/m * lambd/2 * np.sum([tf.square(tf.norm(W[i], ord=2)) for i in range(len(W))])
 	else:
 		cost_L2_regularization = 0
-    cost = cost_cross_entropy + cost_L2_regularization
+	cost = cost_cross_entropy + cost_L2_regularization
 	
 	return cost
 
@@ -259,15 +260,18 @@ def model(X_train, Y_train, X_test, Y_test, params_size, learning_rate = 0.005,
 			# Print the cost every 10 epochs
 			if print_cost == True and epoch % 10 == 0:
 				print_with_log("Cost after epoch {}: {}".format(epoch, epoch_cost))
-				with open('./costs.txt', 'a') as f:
-					f.write(epoch_cost + '\n')
+				write_cost(epoch_cost)
 				
 			# Save the model every 100 epochs
 			if print_cost == True and epoch % 100 == 0:
-				saver.save(sess, 'nn_model/save_net', global_step=epoch)
+				# saver.save(sess, 'nn_model/save_net', global_step=epoch)
 				print_with_log('----------------------------------')
-				compute_accuracies(X_train, y_train, X_test, y_test, params_size)
-				print_with_log("Saved checkpoint!")
+				correct_prediction = tf.equal(tf.argmax(Z_out), tf.argmax(Y))
+				accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+
+				print_with_log("Train Accuracy: {}".format(accuracy.eval({X: X_train, Y: Y_train})))
+				print_with_log("Test Accuracy: {}".format(accuracy.eval({X: X_test, Y: Y_test})))
+				# print_with_log("Saved checkpoint!")
 				print_with_log('----------------------------------')
 
 		# Save the parameters in a variable
@@ -276,7 +280,6 @@ def model(X_train, Y_train, X_test, Y_test, params_size, learning_rate = 0.005,
 		
 
 def compute_accuracies(X_train, Y_train, X_test, Y_test, params_size):
-	ops.reset_default_graph()
 	(n_x, m) = X_train.shape
 	n_y = Y_train.shape[0]
 	
@@ -298,17 +301,16 @@ def compute_accuracies(X_train, Y_train, X_test, Y_test, params_size):
 		print_with_log("Test Accuracy: {}".format(accuracy.eval({X: X_test, Y: Y_test})))
 
 
-def print_with_log(output):
-	print(output)
-	with open('./nn_model/log.txt', 'a') as f:
-		f.write(output + '\n')
+def training(train_index, log_path, csv_path):
+	with open(log_path + 'log.txt', 'w') as f:
+		f.write('----------- Training #{} ------------\n'.format(train_index))
+		# f.write('----------- learning_rate: {} ------------\n'.format(learning_rate))
+	with open(log_path + 'costs.txt', 'w') as f:
+		f.write('Training #{}\n'.format(train_index))
 
+	df = metadata_importer(csv_path)
 
-def main():
-	path = "./metadata_df.csv"
-	df = metadata_importer(path)
-
-	X_orig = df.iloc[:, [:4]]
+	X_orig = df.iloc[:, :4]
 	y_orig = df.iloc[:, 4]
 
 	# label encoding
@@ -318,14 +320,14 @@ def main():
 	print_with_log('shape of y_orig: {}'.format(y_orig.shape))
 
 	# # train set and test set spliting 
-	X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_orig, y_orig, test_size=0.1)
+	X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(X_orig, y_orig, test_size=0.3)
 	print_with_log('shape of X_train_orig: {}'.format(X_train_orig.shape))
 	print_with_log('shape of y_train_orig: {}'.format(y_train_orig.shape))
 	print_with_log('shape of X_test_orig: {}'.format(X_test_orig.shape))
 	print_with_log('shape of y_test_orig: {}'.format(y_test_orig.shape))
 	print_with_log('-----------------------------------')
 
-	mode_set = set(gdf['mode'].values)
+	mode_set = set(df['mode'].values)
 
 	# Flatten the training and test images
 	X_train = np.array(X_train_orig).reshape(X_train_orig.shape[0], -1).T
@@ -350,19 +352,60 @@ def main():
 		X_test[i] = X_test[i] / calculate_box_plot_characteristics(X_test[i])['upper_whisker']
 
 	# define hyperparameters
-	hyperparams = {'params_size': [4, 8, 16, 11], 
-			   'learning_rate': 0.005, 
+	hyperparams = {'params_size': [4, 8, 16, 32, 64, 128, 64, 32, 16, 11], 
+			   'learning_rate': 0.001, 
 			   'num_epochs': 2000, 
-			   'minibatch_size': 512, 
-			   'lambda': None}
+			   'minibatch_size': 128, 
+			   'lambda': 0.1}
 	print_with_log('hyperparams:')
 	for item in hyperparams.keys():
 		print_with_log(' - ' + item + ': ' + str(hyperparams[item]))
+	print_with_log('-----------------------------------')
+	print_with_log('-------------Training--------------')
+	print_with_log('-----------------------------------')
 
 	# train the model
 	model(X_train, y_train, X_test, y_test, 
 			hyperparams['params_size'], hyperparams['learning_rate'], hyperparams['num_epochs'], 
 			hyperparams['minibatch_size'], hyperparams['lambda'], continue_flag=False)
+
+	os.rename(log_path + 'log.txt', log_path + 'log #{}.txt'.format(train_index))
+	os.rename(log_path + 'costs.txt', log_path + 'costs #{}.txt'.format(train_index))
+
+
+def print_with_log(output):
+	log_path = './nn_model/'
+	print(output)
+	with open(log_path + 'log.txt', 'a') as f:
+		f.write(output + '\n')
+
+
+def write_cost(epoch_cost):
+	log_path = './nn_model/'
+	with open(log_path + 'costs.txt', 'a') as f:
+		f.write(str(epoch_cost) + '\n')
+
+
+def main():
+	csv_path = './metadata_df.csv'
+	log_path = './nn_model/'
+
+	user_input = input("Training #")
+	try:
+		train_index = int(user_input)
+	except:
+		raise ValueError("Not an integer!")
+
+	if not os.path.exists(log_path):
+		os.makedirs(log_path)
+
+	# tuning learning rate, from 0.0001 to 1, take logrithmic metric, do 20 times tests
+	# for train_index in range(1, 21):
+	# 	r = -4 * np.random.rand()
+	# 	learning_rate = 10 ** r
+	# 	training(train_index, log_path, csv_path, learning_rate)
+
+	training(train_index, log_path, csv_path)
 
 
 if __name__ == "__main__":
